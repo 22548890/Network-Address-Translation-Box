@@ -59,6 +59,7 @@ public class Client {
     private String randomExternalIP() {
         Random r = new Random();
         String ip = r.nextInt(256) + ""; 
+        if (ip == "10") ip = "11";
         for (int i = 0; i < 3; i++) {
             ip += "." + r.nextInt(256);
         }
@@ -66,7 +67,7 @@ public class Client {
     }
     
     public static void main(String[] args) {
-        int natPort = 1234;
+        int natPort = 1235;
 
         System.out.println("Internal client (true/false): ");
         Scanner scanner = new Scanner(System.in);
