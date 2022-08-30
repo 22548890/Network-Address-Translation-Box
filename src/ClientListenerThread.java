@@ -20,6 +20,7 @@ public class ClientListenerThread implements Runnable {
             try {
                 Paquet paquet = (Paquet) ois.readObject();
                 System.out.println("[" + paquet.getSourceIP() + "]: " + paquet.getText());
+
             } catch (IOException e) {
                 closeEverything();
                 break;

@@ -2,6 +2,8 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import javax.swing.plaf.synth.SynthSpinnerUI;
+
 public class Client {
 
     private String mac;
@@ -77,10 +79,6 @@ public class Client {
                     closeEverything();
                     System.exit(0);
                 } else if (in.equals("ping")) {
-                    System.out.print("IP to ping: ");
-                    Scanner sc = new Scanner(System.in);
-                    String ipTST = sc.nextLine();
-                    // pings IP returns time in seconds
 
                 } else if (in.equals("list")) {
                     // shows list of connected users
@@ -226,14 +224,15 @@ public class Client {
     public static void main(String[] args) throws IOException {
         int natPort = 2345;
 
-        System.out.print("Internal client (true/false): ");
-        Scanner sc = new Scanner(System.in);
-        boolean internal = Boolean.parseBoolean(sc.nextLine());
-        System.out.println();
+        // System.out.print("Internal client (true/false): ");
+        // Scanner sc = new Scanner(System.in);
+        // boolean internal = Boolean.parseBoolean(sc.nextLine());
+        boolean internal = true;
+        // System.out.println();
 
-        System.out.print("NAT-box IP: ");
-        String natIP = sc.nextLine();
-        System.out.println();
+        // System.out.print("NAT-box IP: ");
+        String natIP = "0.0.0.0";// sc.nextLine();
+        // System.out.println();
 
         Socket socket = null;
         try {
