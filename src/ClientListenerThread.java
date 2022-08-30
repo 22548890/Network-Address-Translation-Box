@@ -9,6 +9,7 @@ public class ClientListenerThread implements Runnable {
     public static final int DHCP_REQUEST = 2;
     public static final int ARP_REPLY = 3;
     public static final int ARP_REQUEST = 4;
+    public static final int ERROR = -1;
 
     private Socket socket;
     private ObjectInputStream ois;
@@ -42,24 +43,38 @@ public class ClientListenerThread implements Runnable {
         int type = p.getType();
         switch (type) {
             case ECHO_REPLY:
+                printPaquet(p, "ECHO_REPLY");
                 break;
             case ECHO_REQUEST:
-                System.out.println("[" + p.getSourceIP() + "]: " + p.getText());
+                // System.out.println("[" + p.getSourceIP() + "]: " + p.getText());
                 System.out.println();
-                printPaquet(p);
-                
+                printPaquet(p, "Paquet Details Received");
+
                 // send echo reply
+                Paquet echoReply = new Paquet(p.getDestinationMAC(), p.getSourceMAC(), p.getDestinationIP(),
+                        p.getSourceIP(), p.getDestinationPort(), p.getSourcePort(), ECHO_REPLY, p.getText());
+                try {
+                    ous.writeObject(echoReply);
+                    ous.flush();
+                } catch (IOException e1) {
+
+                }
+
                 break;
             case DHCP_REPLY:
                 client.setNatMAC(p.getSourceMAC());
                 client.setIP(p.getDestinationIP());
 
                 System.out.println("NAT-box MAC: " + client.getNatMAC());
-                System.out.println();
+                System.out.println("--------------------------------------------------------");
+                System.out.println("MY DETAILS:");
+                System.out.println("--------------------------------------------------------");
                 System.out.println("Personal MAC: " + client.getPersonalMAC());
                 System.out.println("Personal IP: " + client.getPersonalIP());
-                if (client.isInternal()) System.out.println("Local IP: " + client.getIP());
+                if (client.isInternal())
+                    System.out.println("Local IP: " + client.getIP());
                 System.out.println("Port: " + socket.getLocalPort());
+                System.out.println("--------------------------------------------------------");
                 System.out.println();
 
                 break;
@@ -74,9 +89,18 @@ public class ClientListenerThread implements Runnable {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                printPaquet(p, "Paquet Details Sent");
                 break;
+
             case ARP_REQUEST:
                 // nothing
+                break;
+
+            case ERROR:
+                System.out.println("ERROR: DESTINATION NOT FOUND AT " + p.getDestinationIP());
+                System.out.println("--------------------------------------------------------");
+                System.out.println("PACKET DROPPED.");
+                System.out.println("--------------------------------------------------------\n");
                 break;
             default:
                 System.out.println("ERROR: Invalid Paquet Type ");
@@ -84,11 +108,11 @@ public class ClientListenerThread implements Runnable {
         }
     }
 
-    private void printPaquet(Paquet p) {
+    private void printPaquet(Paquet p, String detail) {
         System.out.println("-------------------------------------");
-        System.out.println("         Paquet Details");
+        System.out.println(detail);
         System.out.println("-------------------------------------");
-        System.out.println("Paquet Type: " + p.getType());
+        System.out.println("Paquet Type: " + p.getTypeName());
         System.out.println("Source MAC : " + p.getSourceMAC());
         System.out.println("Source IP  : " + p.getSourceIP());
         System.out.println("Source Port: " + p.getSourcePort());

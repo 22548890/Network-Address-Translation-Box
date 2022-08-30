@@ -1,7 +1,5 @@
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 
 public class ClientHandler implements Runnable {
 
@@ -11,6 +9,7 @@ public class ClientHandler implements Runnable {
     public static final int DHCP_REQUEST = 2;
     public static final int ARP_REPLY = 3;
     public static final int ARP_REQUEST = 4;
+    public static final int ERROR = -1;
 
     private Socket socket;
     private ObjectInputStream ois;
@@ -21,9 +20,10 @@ public class ClientHandler implements Runnable {
     private String clientMAC;
     private int clientPort;
     private int natPort = 0;
-    
-    /** 
+
+    /**
      * Constructor for this handler
+     * 
      * @param socket Is the socket that the client connects to
      */
     public ClientHandler(Socket socket, NatBox natbox) {
@@ -33,7 +33,7 @@ public class ClientHandler implements Runnable {
             this.ois = new ObjectInputStream(socket.getInputStream());
             this.natbox = natbox;
             this.clientPort = socket.getPort();
-        } catch (IOException e){
+        } catch (IOException e) {
             closeEverything();
         }
     }
@@ -53,7 +53,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    public void tcpSendToThisClient(Paquet paquet) { 
+    public void tcpSendToThisClient(Paquet paquet) {
         try {
             ous.writeObject(paquet);
             ous.flush();
@@ -62,20 +62,29 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    public boolean isInternal() { return internal; }
+    public boolean isInternal() {
+        return internal;
+    }
 
-    public String getClientIP() { return clientIP; }
+    public String getClientIP() {
+        return clientIP;
+    }
 
-    public String getClientMAC() { return clientMAC; }
+    public String getClientMAC() {
+        return clientMAC;
+    }
 
-    public int getClientPort() { return clientPort; }
+    public int getClientPort() {
+        return clientPort;
+    }
 
     private void handlePaquet(Paquet p) {
         int type = p.getType();
         switch (type) {
             case ECHO_REPLY:
-                // nothing
+                forwardPaquet(p);
                 break;
+
             case ECHO_REQUEST:
                 forwardPaquet(p);
                 break;
@@ -85,14 +94,23 @@ public class ClientHandler implements Runnable {
 
             case DHCP_REQUEST:
                 dhcp(p);
-                if (internal) System.out.println("Internal Client Connected");
-                else System.out.println("External Client Connected");
+                if (internal) {
+                    System.out.println("--------------------------------------------------------");
+                    System.out.println("Internal Client Connected");
+                    System.out.println("--------------------------------------------------------");
+                } else {
+                    System.out.println("--------------------------------------------------------");
+                    System.out.println("External Client Connected");
+                    System.out.println("--------------------------------------------------------");
+                }
+
                 System.out.println("Client MAC: " + clientMAC);
                 System.out.println("Client IP: " + clientIP);
                 System.out.println("Client Port: " + clientPort);
                 if (natPort != 0) {
                     System.out.println("NAT-box Port: " + natPort);
-                } 
+                }
+                System.out.println("--------------------------------------------------------");
                 System.out.println();
                 break;
 
@@ -103,6 +121,10 @@ public class ClientHandler implements Runnable {
             case ARP_REQUEST:
                 arp(p);
                 break;
+
+            case ERROR:
+                // nothing
+                break;
             default:
                 System.out.println("ERROR: Invalid Paquet Type ");
                 System.exit(0);
@@ -110,31 +132,48 @@ public class ClientHandler implements Runnable {
     }
 
     private void forwardPaquet(Paquet p) {
-        if (internal && natbox.isIPInternal(p.getDestinationIP())) {         // internal -> internal
+        if (internal && natbox.isIPInternal(p.getDestinationIP())) { // internal -> internal
             natbox.tcpSend(p);
-        } else if (internal && natbox.isIPExternal(p.getDestinationIP())) {  // internal -> external
+        } else if (internal && natbox.isIPExternal(p.getDestinationIP())) { // internal -> external
+            // change source to natbox
+            p.setSourceIP(natbox.getIP());
+            p.setSourceMAC(natbox.getMAC());
+            p.setSourcePort(natPort);
+            natbox.tcpSend(p);
+        } else if (!internal && p.getDestinationIP().equals(natbox.getIP())) { // external -> internal
 
-        } else if (!internal && natbox.isIPInternal(p.getDestinationIP())) { // external -> internal
+            // change destination to natbox
+            String ip = natbox.getClientIPFromNATPort(p.getDestinationPort());
+            p.setDestinationIP(ip);
+            p.setDestinationMAC(natbox.getClientMACFromIP(ip));
+            p.setDestinationPort(natbox.getClientPortFromIP(ip));
+            natbox.tcpSend(p);
 
-        } else if (!internal && natbox.isIPExternal(p.getDestinationIP())) { // external -> external
-            
         } else {
-            // TODO: Destination client not connected to NAT
-            System.out.println("ERROR: Destination does not exist");
+            // Destination client not connected to NAT
+            System.out.println("ERROR: DESTINATION CLIENT NOT FOUND\n");
+            try {
+                p.setType(ERROR);
+                ous.writeObject(p);
+                ous.flush();
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
         }
     }
 
-    private void dhcp(Paquet p) { 
+    private void dhcp(Paquet p) {
         clientMAC = p.getSourceMAC();
         clientIP = p.getSourceIP();
-        clientPort = p.getSourcePort();        
+        clientPort = p.getSourcePort();
         internal = false;
-        if (p.getText().equals("internal")) internal = true;
+        if (p.getText().equals("internal"))
+            internal = true;
         if (internal) {
             clientIP = natbox.popIPfromPool();
-            natPort = natbox.getAivalablePort();
+            natPort = natbox.getAvailablePort();
             addToTable();
-        } 
+        }
         Paquet paquet = new Paquet(natbox.getMAC(), null, null, clientIP, natPort, 0, DHCP_REPLY, null);
         try {
             ous.writeObject(paquet);
@@ -150,8 +189,16 @@ public class ClientHandler implements Runnable {
         String destIP = p.getDestinationIP();
         int sourcePort = p.getSourcePort();
         String text = p.getText();
-        String destMac = natbox.getClientMACFromIP(destIP);
-        int destPort = natbox.getClientPortFromIP(destIP);
+        String destMac;
+        if (destIP.equals(natbox.getIP())) {
+            destMac = natbox.getMAC();
+        } else {
+            destMac = natbox.getClientMACFromIP(destIP);
+        }
+        int destPort = p.getDestinationPort();
+        if (destPort == 0) { // internal
+            destPort = natbox.getClientPortFromIP(destIP);
+        }
 
         Paquet paquet = new Paquet(sourceMac, destMac, sourceIP, destIP, sourcePort, destPort, ARP_REPLY, text);
         try {
@@ -162,7 +209,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void addToTable() { 
+    private void addToTable() {
         TableRow row = new TableRow(clientIP, socket.getPort(), natbox.getIP(), natPort);
         natbox.addRow(row);
     }
@@ -183,16 +230,19 @@ public class ClientHandler implements Runnable {
             if (ois != null) {
                 ois.close();
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
         try {
             if (ous != null) {
                 ous.close();
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
         try {
             if (socket != null) {
                 socket.close();
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
     }
 }
