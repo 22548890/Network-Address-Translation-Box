@@ -1,8 +1,8 @@
-# <center> Project 3: A Client-Server Chat Program </center>
+# <center> Project 3: NAT-BOX MULTI-CLIENT PROGRAM </center>
 
-Chris Langevelt 23632135
+### Chris Langevelt 23632135
 
-Markus Sass 22548890
+### Markus Sass 22548890
 
 ## NAT-Box Instructions:
 
