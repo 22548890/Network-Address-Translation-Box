@@ -47,6 +47,8 @@ public class ClientListenerThread implements Runnable {
                 System.out.println("[" + p.getSourceIP() + "]: " + p.getText());
                 System.out.println();
                 printPaquet(p);
+                
+                // send echo reply
                 break;
             case DHCP_REPLY:
                 client.setNatMAC(p.getSourceMAC());

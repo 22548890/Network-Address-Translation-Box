@@ -74,6 +74,7 @@ public class ClientHandler implements Runnable {
         int type = p.getType();
         switch (type) {
             case ECHO_REPLY:
+                // nothing
                 break;
             case ECHO_REQUEST:
                 forwardPaquet(p);
@@ -116,7 +117,7 @@ public class ClientHandler implements Runnable {
         } else if (!internal && natbox.isIPInternal(p.getDestinationIP())) { // external -> internal
 
         } else if (!internal && natbox.isIPExternal(p.getDestinationIP())) { // external -> external
-        
+            
         } else {
             // TODO: Destination client not connected to NAT
             System.out.println("ERROR: Destination does not exist");
