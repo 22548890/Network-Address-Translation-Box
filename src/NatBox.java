@@ -1,20 +1,15 @@
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
-import java.util.Scanner;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 public class NatBox {
     private final int poolSize = 8;
 
     private ServerSocket serverSocket;
     private String ip;
+    static String natMAC;
     private String mac;
-    private int aivalablePort = 0;
+    private int availablePort = 0;
     private ArrayList<TableRow> table = new ArrayList<TableRow>();
     private ArrayList<String> pool = new ArrayList<String>();
     private ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
@@ -24,7 +19,7 @@ public class NatBox {
         this.serverSocket = serverSocket;
         this.ip = ip;
         this.mac = randomMAC();
-        
+        natMAC = mac;
         for (int i = 1; i <= poolSize; i++) {
             pool.add("10.0.0." + i);
         }
@@ -32,11 +27,11 @@ public class NatBox {
 
     public void start() {
         try {
-            while (!serverSocket.isClosed()){
+            while (!serverSocket.isClosed()) {
                 Socket socket = serverSocket.accept();
                 System.out.println(socket.getInetAddress().getHostAddress());
                 System.out.println("Client connected");
-                
+
                 ClientHandler clientHandler = new ClientHandler(socket, this);
                 clientHandlers.add(clientHandler);
 
@@ -48,7 +43,7 @@ public class NatBox {
         }
     }
 
-    public String popIPfromPool() { 
+    public String popIPfromPool() {
         if (pool != null) {
             String ip = pool.get(0);
             pool.remove(0);
@@ -65,33 +60,40 @@ public class NatBox {
         }
     }
 
-    public void addRow(TableRow row) { 
-        table.add(row); 
+    public void addRow(TableRow row) {
+        table.add(row);
     }
 
     public void arpPut(String ip, String mac) {
         arp.put(ip, mac);
     }
 
-    public String getIP() { return ip; }
+    public String getIP() {
+        return ip;
+    }
 
-    public String getMAC() { return mac; }
+    public String getMAC() {
+        return mac;
+    }
 
-    public int getAivalablePort() { return ++aivalablePort; }
+    public int getAvailablePort() {
+        return ++availablePort;
+    }
 
     public void removeClientHandler(ClientHandler clientHandler) {
+        System.out.println("Client " + clientHandler.getIP() + " Disconnected");
         clientHandlers.remove(clientHandler);
-        System.out.println("Client Disconnected");
+
     }
 
     private String randomMAC() {
         Random r = new Random();
         byte[] mac = new byte[6];
         r.nextBytes(mac);
-        mac[0] = (byte)(mac[0] & (byte)254); 
+        mac[0] = (byte) (mac[0] & (byte) 254);
         StringBuilder str = new StringBuilder(18);
-        for(byte b : mac){
-            if(str.length() > 0)
+        for (byte b : mac) {
+            if (str.length() > 0)
                 str.append(":");
             str.append(String.format("%02x", b));
         }
@@ -100,14 +102,14 @@ public class NatBox {
 
     private String randomIP() {
         Random r = new Random();
-        String ip = r.nextInt(256) + ""; 
+        String ip = r.nextInt(256) + "";
         for (int i = 0; i < 3; i++) {
             ip += "." + r.nextInt(256);
         }
         return ip;
     }
 
-    public void printTable() { 
+    public void printTable() {
         if (table != null) {
             System.out.println();
             System.out.println("--------------------------------------------------------");
@@ -120,7 +122,7 @@ public class NatBox {
         }
     }
 
-    /** 
+    /**
      * Method that closes server socket
      */
     public void closeServerSocket() {
@@ -141,11 +143,21 @@ public class NatBox {
         String pIP = sc.nextLine();
         System.out.println();
 
-        System.out.println("NAT-box Intialized");
+        System.out.println("NAT-box Initialized");
         System.out.println();
 
         ServerSocket serverSocket = new ServerSocket(port);
         NatBox box = new NatBox(serverSocket, pIP);
+        System.out.println("NAT-box mac:" + natMAC);
         box.start();
+
+    }
+
+    public void sendPaquet(Paquet paquet) {
+        for (ClientHandler clientHandler : clientHandlers) {
+            if (clientHandler.getIP().equals(paquet.getDestinationIP())) {
+                clientHandler.sendPaquet(paquet);
+            }
+        }
     }
 }

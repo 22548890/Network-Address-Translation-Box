@@ -1,10 +1,6 @@
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.Random;
-import java.util.Scanner;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 public class Client {
 
@@ -12,7 +8,7 @@ public class Client {
     private String ip;
     private String assignedIP = null;
     private String natIP;
-    private String natMAC = null;
+    static String natMAC;
     private Socket socket;
     private ObjectInputStream ois;
     private ObjectOutputStream ous;
@@ -34,8 +30,25 @@ public class Client {
             closeEverything();
             System.exit(0);
         }
-        this.internal = internal; 
+        this.internal = internal;
         this.natIP = natIP;
+
+    }
+
+    public static String getNatMAC(InetAddress NATip) {
+        try {
+            NetworkInterface network = NetworkInterface.getByInetAddress(InetAddress.getLocalHost());
+            byte[] mac = network.getHardwareAddress();
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < mac.length; i++) {
+                sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+            }
+            return sb.toString();
+        } catch (SocketException e) {
+            return "ERROR";
+        } catch (UnknownHostException e) {
+            return "ERROR";
+        }
     }
 
     public void sendPaquet() {
@@ -54,10 +67,23 @@ public class Client {
                     System.out.print("IP to send to: ");
                     System.out.println();
                     String ipTST = sc.nextLine();
+                    // Paquet(String destinationMAC, String sourceMAC, String sourceIP, String
+                    // destinationIP, String text)
                     // continue here
+                    paquet = new Paquet(natMAC, mac, ip, ipTST, text);
                 }
                 ous.writeObject(paquet);
                 ous.flush();
+            } catch (Exception e) {
+                System.out.println("ERROR: Reading object");
+                closeEverything();
+                e.printStackTrace();
+                System.exit(0);
+            }
+            // receive paquet
+            try {
+                paquet = (Paquet) ois.readObject();
+                System.out.println("Received: " + paquet.getText() + " from " + paquet.getSourceIP());
             } catch (Exception e) {
                 System.out.println("ERROR: Reading object");
                 closeEverything();
@@ -75,6 +101,7 @@ public class Client {
             ous.flush();
 
             natMAC = (String) ois.readObject();
+
         } catch (IOException e) {
             System.out.println("ERROR: With sharing IPs and MACs");
             closeEverything();
@@ -84,7 +111,7 @@ public class Client {
         }
     }
 
-    public void dhcpRequest() { 
+    public void dhcpRequest() {
         try {
             // sending mac address
             if (internal) { // request IP address from pool
@@ -102,19 +129,21 @@ public class Client {
             System.out.println("ERROR: With dchp Request");
             closeEverything();
             System.exit(0);
-        }   
+        }
     }
 
-    public boolean isInternal() { return internal; }
+    public boolean isInternal() {
+        return internal;
+    }
 
     private String randomMAC() {
         Random r = new Random();
         byte[] mac = new byte[6];
         r.nextBytes(mac);
-        mac[0] = (byte)(mac[0] & (byte)254); 
+        mac[0] = (byte) (mac[0] & (byte) 254);
         StringBuilder str = new StringBuilder(18);
-        for(byte b : mac){
-            if(str.length() > 0)
+        for (byte b : mac) {
+            if (str.length() > 0)
                 str.append(":");
             str.append(String.format("%02x", b));
         }
@@ -123,7 +152,7 @@ public class Client {
 
     private String randomInternalIP() {
         Random r = new Random();
-        String ip = "10"; 
+        String ip = "10";
         for (int i = 0; i < 3; i++) {
             ip += "." + r.nextInt(256);
         }
@@ -132,15 +161,16 @@ public class Client {
 
     private String randomExternalIP() {
         Random r = new Random();
-        String ip = r.nextInt(256) + ""; 
-        if (ip == "10") ip = "11";
+        String ip = r.nextInt(256) + "";
+        if (ip == "10")
+            ip = "11";
         for (int i = 0; i < 3; i++) {
             ip += "." + r.nextInt(256);
         }
         return ip;
     }
 
-    /** 
+    /**
      * Closes socket and streams neatly
      */
     public void closeEverything() {
@@ -154,11 +184,11 @@ public class Client {
             if (socket != null) {
                 socket.close();
             }
-        }catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    
+
     public static void main(String[] args) throws IOException {
         int natPort = 2345;
 
@@ -170,7 +200,7 @@ public class Client {
         System.out.print("NAT-box IP: ");
         String natIP = sc.nextLine();
         System.out.println();
-        
+
         Socket socket = null;
         try {
             socket = new Socket(natIP, natPort);
@@ -181,14 +211,14 @@ public class Client {
             System.out.println("ERROR: Connecting socket");
             System.exit(0);
         }
-
         Client client = new Client(socket, internal, natIP);
+
         client.dhcpRequest();
         client.shareInfo();
+        System.out.println("NAT-box MAC: " + natMAC);
         client.sendPaquet();
 
-
         client.closeEverything();
-        
+
     }
 }

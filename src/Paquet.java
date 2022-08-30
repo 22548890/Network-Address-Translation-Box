@@ -1,7 +1,8 @@
+
 import java.io.Serializable;
 
 public class Paquet implements Serializable {
-    
+
     // Ethernet frame important elements
     private String destinationMAC;
     private String sourceMAC;
@@ -32,15 +33,67 @@ public class Paquet implements Serializable {
         this.isCommand = true;
     }
 
-    public String getDestinationMAC() { return destinationMAC; }
+    public String getDestinationMAC() {
+        return destinationMAC;
+    }
 
-    public String getSourceMAC() { return sourceMAC; }
+    public String getSourceMAC() {
+        return sourceMAC;
+    }
 
-    public String getSourceIP() { return sourceIP; }
+    public String getSourceIP() {
+        return sourceIP;
+    }
 
-    public String getDestinationIP() { return destinationIP; }
+    public String getDestinationIP() {
+        return destinationIP;
+    }
 
-    public String getText() { return text; }
+    public String getText() {
+        return text;
+    }
 
-    public boolean isCommand() { return isCommand; }
+    public boolean isCommand() {
+        return isCommand;
+    }
+
+    public void setSourceIP(String assignedIP) {
+        this.sourceIP = assignedIP;
+    }
+
+    public void setSourceMAC(String mac) {
+        this.sourceMAC = mac;
+    }
+
+    public void setDestinationMAC(String destinationMAC) {
+        this.destinationMAC = destinationMAC;
+    }
+
+    public void setDestinationIP(String destinationIP) {
+        this.destinationIP = destinationIP;
+    }
+
+    public void setSourcePort(int sourcePort) {
+        this.sourcePort = sourcePort;
+    }
+
+    public void setDestinationPort(int destinationPort) {
+        this.destinationPort = destinationPort;
+    }
+
+    public int getSourcePort() {
+        return sourcePort;
+    }
+
+    public int getDestinationPort() {
+        return destinationPort;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    public void setCommand(boolean command) {
+        isCommand = command;
+    }
 }

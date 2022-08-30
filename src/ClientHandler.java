@@ -12,9 +12,10 @@ public class ClientHandler implements Runnable {
     private boolean internal = false;
     private String assignedIP = null;
     private int natPort = 0;
-    
-    /** 
+
+    /**
      * Constructor for this handler
+     * 
      * @param socket Is the socket that the client connects to
      */
     public ClientHandler(Socket socket, NatBox natbox) {
@@ -23,7 +24,7 @@ public class ClientHandler implements Runnable {
             this.ous = new ObjectOutputStream(socket.getOutputStream());
             this.ois = new ObjectInputStream(socket.getInputStream());
             this.natbox = natbox;
-        } catch (IOException e){
+        } catch (IOException e) {
             closeEverything();
         }
     }
@@ -43,6 +44,16 @@ public class ClientHandler implements Runnable {
                 if (paquet.isCommand()) {
                     handleCommand(paquet.getText());
                 }
+                System.out.println("NAT-box Received: " + paquet.getText() + " from " + paquet.getSourceIP());
+                if (internal) {
+                    paquet.setSourceIP(assignedIP);
+                    paquet.setSourceMAC(natbox.getMAC());
+                    natbox.sendPaquet(paquet);
+                } else {
+                    paquet.setSourceIP(natbox.getIP());
+                    paquet.setSourceMAC(natbox.getMAC());
+                    natbox.sendPaquet(paquet);
+                }
             } catch (IOException e) {
                 closeEverything();
                 break;
@@ -52,7 +63,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void dchp() { 
+    private void dchp() {
         boolean internal = false;
         try {
             internal = Boolean.parseBoolean((String) ois.readObject());
@@ -74,17 +85,17 @@ public class ClientHandler implements Runnable {
                 ous.writeObject(assignedIP);
                 ous.flush();
 
-                natPort = natbox.getAivalablePort();
+                natPort = natbox.getAvailablePort();
             }
         } catch (IOException e) {
             System.out.println("ERROR: Error with popping IP from pool");
             closeEverything();
             System.exit(0);
         }
-        
+
     }
 
-    private void addToTable() { 
+    private void addToTable() {
         TableRow row = new TableRow(assignedIP, socket.getPort(), natbox.getIP(), natPort);
         natbox.addRow(row);
     }
@@ -121,16 +132,33 @@ public class ClientHandler implements Runnable {
             if (ois != null) {
                 ois.close();
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
         try {
             if (ous != null) {
                 ous.close();
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
         try {
             if (socket != null) {
                 socket.close();
             }
-        } catch (IOException e) {}
+        } catch (IOException e) {
+        }
+    }
+
+    public Object getIP() {
+        return assignedIP;
+    }
+
+    public void sendPaquet(Paquet paquet) {
+        try {
+            ous.writeObject(paquet);
+            ous.flush();
+            System.out.println("NAT-box Sent: " + paquet.getText() + " to " + paquet.getDestinationIP());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
