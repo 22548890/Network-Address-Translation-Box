@@ -8,9 +8,16 @@ import java.util.Scanner;
 
 public class Client {
 
-    private String mac;
+    public static final int ECHO_REPLY = 0;
+    public static final int ECHO_REQUEST = 8;
+    public static final int DHCP_REPLY = 1;
+    public static final int DHCP_REQUEST = 2;
+    public static final int ARP_REPLY = 3;
+    public static final int ARP_REQUEST = 4;
+
+    private String personalMAC;
+    private String personalIP;
     private String ip;
-    private String assignedIP = null;
     private String natIP;
     private String natMAC = null;
     private Socket socket;
@@ -19,12 +26,13 @@ public class Client {
     private boolean internal;
 
     public Client(Socket socket, boolean internal, String natIP) {
-        this.mac = randomMAC();
+        this.personalMAC = randomMAC();
         if (internal) {
-            this.ip = randomInternalIP();
+            this.personalIP = randomInternalIP();
         } else {
-            this.ip = randomExternalIP();
+            this.personalIP = randomExternalIP();
         }
+        this.ip = personalIP;
         this.socket = socket;
         try {
             this.ois = new ObjectInputStream(socket.getInputStream());
@@ -38,26 +46,12 @@ public class Client {
         this.natIP = natIP;
     }
 
-    public void sendPaquet() {
-        Paquet paquet = null;
+    public void start() {
         while (socket.isConnected()) {
             try {
-                System.out.print("Type message: ");
                 Scanner sc = new Scanner(System.in);
                 String text = sc.nextLine();
-                if (text.equals("/exit")) {
-                    closeEverything();
-                    System.exit(0);
-                } else if (text.charAt(0) == '/') {
-                    paquet = new Paquet(text);
-                } else {
-                    System.out.print("IP to send to: ");
-                    System.out.println();
-                    String ipTST = sc.nextLine();
-                    // continue here
-                }
-                ous.writeObject(paquet);
-                ous.flush();
+                handleCommand(text);
             } catch (Exception e) {
                 System.out.println("ERROR: Reading object");
                 closeEverything();
@@ -67,37 +61,51 @@ public class Client {
         }
     }
 
-    public void shareInfo() {
-        try {
-            ous.writeObject(ip);
-            ous.flush();
-            ous.writeObject(mac);
-            ous.flush();
+    private void handleCommand(String cmd) throws IOException, ClassNotFoundException { 
+        Paquet paquet = null;
+        switch (cmd) {
+            case "/exit":
+                closeEverything();
+                System.exit(0);
+                break;
+            case "/ping":
+                Scanner sc = new Scanner(System.in);
+                System.out.print("IP to send to: ");
+                String ipTST = sc.nextLine();
+                System.out.print("Port to send to: ");
+                int portTST = Integer.parseInt(sc.nextLine());
+                System.out.print("Ping message: ");
+                String text = sc.nextLine();
+                System.out.println();
 
-            natMAC = (String) ois.readObject();
-        } catch (IOException e) {
-            System.out.println("ERROR: With sharing IPs and MACs");
-            closeEverything();
-            System.exit(0);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+                // get corresponding mac and port of destination
+                paquet = new Paquet(personalMAC, null, ip, ipTST, socket.getLocalPort(), 0, ARP_REQUEST, text);
+                ous.writeObject(paquet);
+                ous.flush();
+                // String macTST = (String) ois.readObject();
+
+                // paquet = new Paquet(personalMAC, macTST, ip, ipTST, socket.getLocalPort(), portTST, ECHO_REQUEST, text);
+                // ous.writeObject(paquet);
+                // ous.flush();
+                break;
+            case "/help":
+                // TODO
+                break;
+            default: 
+                System.out.println("Type '/help' to view possible commands");
+                System.out.println();
+                return;
         }
     }
 
     public void dhcpRequest() { 
         try {
-            // sending mac address
-            if (internal) { // request IP address from pool
-                ous.writeObject("true");
-                ous.flush();
-
-                assignedIP = (String) ois.readObject();
-                System.out.println("IP assigned from pool: " + assignedIP);
-                System.out.println();
-            } else {
-                ous.writeObject("false");
-                ous.flush();
-            }
+            // send request
+            String text = "external";
+            if (internal) text = "internal";
+            Paquet paquet = new Paquet(personalMAC, null, personalIP, null, socket.getLocalPort(), 0, DHCP_REQUEST, text);
+            ous.writeObject(paquet);
+            ous.flush();
         } catch (Exception e) {
             System.out.println("ERROR: With dchp Request");
             closeEverything();
@@ -105,7 +113,28 @@ public class Client {
         }   
     }
 
+    public void setIP(String ip) { this.ip = ip; }
+
+    public void setNatMAC(String natMAC) { this.natMAC = natMAC; }
+
+    public String getPersonalMAC() { return personalMAC; }
+
+    public String getPersonalIP() { return personalIP; }
+
+    public String getIP() { return ip; }
+
+    public String getNatMAC() { return natMAC; }
+
+    public String getNatIP() { return natIP; }
+
     public boolean isInternal() { return internal; }
+
+    public void listenForPaquet() {
+        ClientListenerThread clientListenerThread = new ClientListenerThread(socket, ois, ous, this);
+        Thread thread = new Thread(clientListenerThread);
+        thread.start(); 
+    }
+
 
     private String randomMAC() {
         Random r = new Random();
@@ -160,7 +189,7 @@ public class Client {
     }
     
     public static void main(String[] args) throws IOException {
-        int natPort = 2345;
+        int natPort = 1234;
 
         System.out.print("Internal client (true/false): ");
         Scanner sc = new Scanner(System.in);
@@ -169,7 +198,6 @@ public class Client {
 
         System.out.print("NAT-box IP: ");
         String natIP = sc.nextLine();
-        System.out.println();
         
         Socket socket = null;
         try {
@@ -184,8 +212,9 @@ public class Client {
 
         Client client = new Client(socket, internal, natIP);
         client.dhcpRequest();
-        client.shareInfo();
-        client.sendPaquet();
+        // client.shareInfo();
+        client.listenForPaquet();
+        client.start();
 
 
         client.closeEverything();

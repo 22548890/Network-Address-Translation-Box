@@ -1,6 +1,4 @@
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -18,24 +16,25 @@ public class NatBox {
     private ArrayList<TableRow> table = new ArrayList<TableRow>();
     private ArrayList<String> pool = new ArrayList<String>();
     private ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
-    private HashMap<String, String> arp = new HashMap<String, String>();
+    // private HashMap<String, String> arp = new HashMap<String, String>();
 
     public NatBox(ServerSocket serverSocket, String ip) {
         this.serverSocket = serverSocket;
         this.ip = ip;
         this.mac = randomMAC();
-        
+        // arp.put(ip, mac);
         for (int i = 1; i <= poolSize; i++) {
             pool.add("10.0.0." + i);
         }
     }
 
     public void start() {
+        System.out.println("NAT-box IP: " + ip);
+        System.out.println("NAT-box MAC: " + mac);
+        System.out.println();
         try {
             while (!serverSocket.isClosed()){
                 Socket socket = serverSocket.accept();
-                System.out.println(socket.getInetAddress().getHostAddress());
-                System.out.println("Client connected");
                 
                 ClientHandler clientHandler = new ClientHandler(socket, this);
                 clientHandlers.add(clientHandler);
@@ -45,6 +44,14 @@ public class NatBox {
             }
         } catch (IOException e) {
             closeServerSocket();
+        }
+    }
+
+    public void tcpSend(Paquet p) {
+        for (ClientHandler handler : clientHandlers) {
+            if (handler.getClientIP().equals(p.getDestinationIP())) {
+                handler.tcpSendToThisClient(p);
+            }
         }
     }
 
@@ -69,9 +76,11 @@ public class NatBox {
         table.add(row); 
     }
 
-    public void arpPut(String ip, String mac) {
-        arp.put(ip, mac);
-    }
+    // public String arpGet(String ip) { return arp.get(ip); }
+
+    // public void arpPut(String ip, String mac) {
+    //     arp.put(ip, mac);
+    // }
 
     public String getIP() { return ip; }
 
@@ -79,9 +88,53 @@ public class NatBox {
 
     public int getAivalablePort() { return ++aivalablePort; }
 
+    public String getClientMACFromIP(String ip) { 
+        for (ClientHandler handler : clientHandlers) {
+            if (handler.getClientIP().equals(ip)) {
+                return handler.getClientMAC();
+            }
+        }
+        return null;
+    }
+
+    public int getClientPortFromIP(String ip) { 
+        for (ClientHandler handler : clientHandlers) {
+            if (handler.getClientIP().equals(ip)) {
+                return handler.getClientPort();
+            }
+        }
+        return 0;
+    }
+
     public void removeClientHandler(ClientHandler clientHandler) {
         clientHandlers.remove(clientHandler);
         System.out.println("Client Disconnected");
+        System.out.println("Client MAC: " + clientHandler.getClientMAC());
+        System.out.println("Client IP: " + clientHandler.getClientIP());
+        System.out.println();
+    }
+
+    public boolean clientHandlersContain(ClientHandler clientHandler) {
+        if (clientHandlers.contains(clientHandler)) return true;
+        else return false;
+    }
+
+    public boolean isIPInternal(String ip) { 
+        for (ClientHandler clientHandler : clientHandlers) {
+            if (clientHandler.getClientIP().equals(ip) && clientHandler.isInternal()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isIPExternal(String ip) { 
+        for (ClientHandler clientHandler : clientHandlers) {
+            if (clientHandler.getClientIP().equals(ip) && !clientHandler.isInternal()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String randomMAC() {
@@ -134,14 +187,11 @@ public class NatBox {
     }
 
     public static void main(String[] args) throws IOException {
-        int port = 2345;
+        int port = 1234;
 
         System.out.print("Public IP address: ");
         Scanner sc = new Scanner(System.in);
         String pIP = sc.nextLine();
-        System.out.println();
-
-        System.out.println("NAT-box Intialized");
         System.out.println();
 
         ServerSocket serverSocket = new ServerSocket(port);
