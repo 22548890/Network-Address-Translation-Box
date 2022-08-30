@@ -135,6 +135,14 @@ public class NatBox {
         }
     }
 
+    public void sendPaquet(Paquet paquet) {
+        for (ClientHandler clientHandler : clientHandlers) {
+            if (clientHandler.getIP().equals(paquet.getDestinationIP())) {
+                clientHandler.sendPaquet(paquet);
+            }
+        }
+    }
+
     public static void main(String[] args) throws IOException {
         int port = 2345;
 
@@ -149,15 +157,11 @@ public class NatBox {
         ServerSocket serverSocket = new ServerSocket(port);
         NatBox box = new NatBox(serverSocket, pIP);
         System.out.println("NAT-box mac:" + natMAC);
+
+        NatBoxListenerThreadListener listener = new NatBoxListenerThreadListener(box);
+        Thread thread = new Thread(listener);
+        thread.start();
         box.start();
-
     }
 
-    public void sendPaquet(Paquet paquet) {
-        for (ClientHandler clientHandler : clientHandlers) {
-            if (clientHandler.getIP().equals(paquet.getDestinationIP())) {
-                clientHandler.sendPaquet(paquet);
-            }
-        }
-    }
 }

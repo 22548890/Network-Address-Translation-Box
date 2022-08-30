@@ -51,19 +51,18 @@ public class Client {
         }
     }
 
-    public void sendPaquet() {
+    public void instruction() {
         Paquet paquet = null;
+        // read from console
+        Scanner scanner = new Scanner(System.in);
+
         while (socket.isConnected()) {
             try {
-                System.out.print("Type message: ");
-                Scanner sc = new Scanner(System.in);
-                String text = sc.nextLine();
-                if (text.equals("/exit")) {
-                    closeEverything();
-                    System.exit(0);
-                } else if (text.charAt(0) == '/') {
-                    paquet = new Paquet(text);
-                } else {
+                String in = scanner.nextLine();
+                if (in.equals("send")) {
+                    System.out.print("Type message: ");
+                    Scanner sc = new Scanner(System.in);
+                    String text = sc.nextLine();
                     System.out.print("IP to send to: ");
                     System.out.println();
                     String ipTST = sc.nextLine();
@@ -71,26 +70,61 @@ public class Client {
                     // destinationIP, String text)
                     // continue here
                     paquet = new Paquet(natMAC, mac, ip, ipTST, text);
+
+                    ous.writeObject(paquet);
+                    ous.flush();
+                } else if (in.equals("/exit")) {
+                    closeEverything();
+                    System.exit(0);
+                } else if (in.equals("ping")) {
+                    System.out.print("IP to ping: ");
+                    Scanner sc = new Scanner(System.in);
+                    String ipTST = sc.nextLine();
+                    // pings IP returns time in seconds
+
+                } else if (in.equals("list")) {
+                    // shows list of connected users
+
+                } else if (in.equals("whoami")) {
+                    System.out.println("Assigned IP: " + assignedIP + "\n" + "IP: " + ip + "\n" + "MAC: " + mac);
+
+                } else if (in.equals("help")) {
+                    System.out.println("send - send a message to another user");
+                    System.out.println("ping - ping a user");
+                    System.out.println("list - list all connected users");
+                    System.out.println("whoami - show your IP and MAC");
+                    System.out.println("/exit - exit the program");
+                } else {
+                    System.out.println("Invalid command");
                 }
-                ous.writeObject(paquet);
-                ous.flush();
-            } catch (Exception e) {
-                System.out.println("ERROR: Reading object");
+
+            }
+
+            catch (Exception e) {
+                System.out.println("Shutting down");
                 closeEverything();
                 e.printStackTrace();
                 System.exit(0);
             }
             // receive paquet
-            try {
-                paquet = (Paquet) ois.readObject();
-                System.out.println("Received: " + paquet.getText() + " from " + paquet.getSourceIP());
-            } catch (Exception e) {
-                System.out.println("ERROR: Reading object");
-                closeEverything();
-                e.printStackTrace();
-                System.exit(0);
-            }
+            // try {
+            // paquet = (Paquet) ois.readObject();
+            // System.out.println("Received: " + paquet.getText() + " from " +
+            // paquet.getSourceIP());
+            // } catch (Exception e) {
+            // System.out.println("ERROR: Reading object");
+            // closeEverything();
+            // e.printStackTrace();
+            // System.exit(0);
+            // }
         }
+
+    }
+
+    public void listenForPaquet() {
+        ClientListenerThread clientListenerThread = new ClientListenerThread(socket, ois, ous);
+        Thread thread = new Thread(clientListenerThread);
+        thread.start(); // waiting for broadcasted msgs
     }
 
     public void shareInfo() {
@@ -216,7 +250,10 @@ public class Client {
         client.dhcpRequest();
         client.shareInfo();
         System.out.println("NAT-box MAC: " + natMAC);
-        client.sendPaquet();
+
+        client.listenForPaquet();
+        // wait for system.in
+        client.instruction();
 
         client.closeEverything();
 
