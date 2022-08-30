@@ -1,3 +1,6 @@
+/**
+ * @return the natPort
+ */
 public class TableRow {
 
     private String clientIP;
@@ -21,18 +24,30 @@ public class TableRow {
         this.natPort = natPort;
     }
 
+    /**
+     * @return String
+     */
     public String getClientIP() {
         return clientIP;
     }
 
+    /**
+     * @return int
+     */
     public int getClientPort() {
         return clientPort;
     }
 
+    /**
+     * @return String
+     */
     public String getNatIP() {
         return natIP;
     }
 
+    /**
+     * @return int
+     */
     public int getNatPort() {
         return natPort;
     }

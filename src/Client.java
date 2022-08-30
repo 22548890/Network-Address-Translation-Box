@@ -2,6 +2,52 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+/**
+ * This class is used to send and receive UDP packets.
+ * It is used to send and receive DHCP requests and replies.
+ * It is used to send and receive echo requests and replies.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ */
+/**
+ * This class is used to send and receive UDP packets.
+ * It is used to send and receive DHCP requests and replies.
+ * It is used to send and receive echo requests and replies.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ */
+/**
+ * This class is used to send and receive UDP packets.
+ * It is used to send and receive DHCP requests and replies.
+ * It is used to send and receive echo requests and replies.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ * It is used to send and receive UDP packets.
+ */
+/**
+ * This class is used to send and receive packets from the server.
+ * It is used to send and receive packets from the server.
+ */
 public class Client {
 
     public static final int ECHO_REPLY = 0;
@@ -42,6 +88,12 @@ public class Client {
         this.natIP = natIP;
     }
 
+    /**
+     * This method will be called by the main thread, and will handle the user
+     * input.
+     * 
+     * @throws IOException if the socket is closed.
+     */
     public void start() {
         while (socket.isConnected()) {
             try {
@@ -57,6 +109,14 @@ public class Client {
         }
     }
 
+    /**
+     * Handles the command sent by the user.
+     * 
+     * @param cmd The command sent by the user.
+     * @throws IOException            If an I/O error occurs.
+     * @throws ClassNotFoundException If the class of a serialized object cannot be
+     *                                found.
+     */
     private void handleCommand(String cmd) throws IOException, ClassNotFoundException {
         Paquet paquet = null;
         Scanner sc = null;
@@ -69,40 +129,18 @@ public class Client {
             case "/send":
                 sc = new Scanner(System.in);
                 System.out.print("Enter destination IP: ");
-                String destIP = sc.nextLine();
-                System.out.print("Enter destination Port: ");
-                int destPort = sc.nextInt();
-                System.out.print("Enter message: ");
-                String msg = sc.nextLine();
-                System.out.println();
-                paquet = new Paquet(personalMAC, null, ip, destIP, Integer.parseInt(getLocalPort()), destPort,
-                        ECHO_REQUEST, msg);// send request
-                ous.writeObject(paquet);
-                ous.flush();
-
-            case "/ping":
-                sc = new Scanner(System.in);
-                System.out.print("IP to send to: ");
                 String ipTST = sc.nextLine();
                 int portTST = 0;
                 if (!internal) {
-                    System.out.print("Port to send to: ");
+                    System.out.print("Enter destination Port: ");
                     portTST = Integer.parseInt(sc.nextLine());
                 }
-                System.out.print("Ping message: ");
+                System.out.print("Enter message: ");
                 String text = sc.nextLine();
                 System.out.println();
-
-                // get corresponding mac and port of destination
                 paquet = new Paquet(personalMAC, null, ip, ipTST, socket.getLocalPort(), portTST, ARP_REQUEST, text);
                 ous.writeObject(paquet);
                 ous.flush();
-                // String macTST = (String) ois.readObject();
-
-                // paquet = new Paquet(personalMAC, macTST, ip, ipTST, socket.getLocalPort(),
-                // portTST, ECHO_REQUEST, text);
-                // ous.writeObject(paquet);
-                // ous.flush();
                 break;
 
             case "/whoami":
@@ -124,7 +162,6 @@ public class Client {
             case "/help":
                 System.out.println("Commands:");
                 System.out.println("/exit: close the client");
-                System.out.println("/ping: send a ping to a client");
                 System.out.println("/whoami: show your info");
                 System.out.println("/send: send a message to a client");
                 System.out.println("");
@@ -136,10 +173,18 @@ public class Client {
         }
     }
 
+    /**
+     * Returns the local port of the socket.
+     * 
+     * @return the local port of the socket.
+     */
     private String getLocalPort() {
         return String.valueOf(socket.getLocalPort());
     }
 
+    /**
+     * Sends a DHCP request to the server.
+     */
     public void dhcpRequest() {
         try {
             // send request
@@ -157,44 +202,91 @@ public class Client {
         }
     }
 
+    /**
+     * Sets the IP of the player.
+     * 
+     * @param ip The IP of the player.
+     */
     public void setIP(String ip) {
         this.ip = ip;
     }
 
+    /**
+     * Sets the NAT MAC address of the player.
+     * 
+     * @param natMAC The MAC address of the NAT.
+     */
     public void setNatMAC(String natMAC) {
         this.natMAC = natMAC;
     }
 
+    /**
+     * Returns the personal MAC address of the player.
+     * 
+     * @return The personal MAC address of the player.
+     */
     public String getPersonalMAC() {
         return personalMAC;
     }
 
+    /**
+     * Returns the personal IP of the player.
+     * 
+     * @return The personal IP of the player.
+     */
     public String getPersonalIP() {
         return personalIP;
     }
 
+    /**
+     * @return String
+     */
     public String getIP() {
         return ip;
     }
 
+    /**
+     * @return String
+     */
     public String getNatMAC() {
         return natMAC;
     }
 
+    /**
+     * @return String
+     */
     public String getNatIP() {
         return natIP;
     }
 
+    /**
+     * Returns whether this is an internal state or not.
+     * 
+     * @return whether this is an internal state or not.
+     */
     public boolean isInternal() {
         return internal;
     }
 
+    /**
+     * Listens for a new client to connect to the server.
+     * 
+     * @param socket The socket to listen on.
+     * @param ois    The input stream to read from.
+     * @param ous    The output stream to write to.
+     * @param server The server to send messages to.
+     */
     public void listenForPaquet() {
         ClientListenerThread clientListenerThread = new ClientListenerThread(socket, ois, ous, this);
         Thread thread = new Thread(clientListenerThread);
         thread.start();
     }
 
+    /**
+     * Generates a random MAC address.
+     * 
+     * @return A random MAC address.
+     */
     private String randomMAC() {
         Random r = new Random();
         byte[] mac = new byte[6];
@@ -209,6 +301,11 @@ public class Client {
         return str.toString();
     }
 
+    /**
+     * Returns a random IP address in the form of "10.0.0.0"
+     * 
+     * @return a random IP address in the form of "10.0.0.0"
+     */
     private String randomInternalIP() {
         Random r = new Random();
         String ip = "10";
@@ -218,6 +315,11 @@ public class Client {
         return ip;
     }
 
+    /**
+     * Returns a random external IP address.
+     * 
+     * @return A random external IP address.
+     */
     private String randomExternalIP() {
         Random r = new Random();
         String ip = r.nextInt(256) + "";
@@ -230,7 +332,7 @@ public class Client {
     }
 
     /**
-     * Closes socket and streams neatly
+     * Closes the socket and streams.
      */
     public void closeEverything() {
         try {
@@ -244,16 +346,27 @@ public class Client {
                 socket.close();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("ERROR: Socket Closed.");
         }
+        System.exit(0);
     }
 
+    /**
+     * The main method of the client.
+     * 
+     * @param args The arguments of the main method.
+     * @throws IOException If the socket fails to connect.
+     */
     public static void main(String[] args) throws IOException {
         int natPort = 1234;
-
-        System.out.print("Internal client (true/false): ");
+        boolean internal = false;
+        System.out.print("Internal client (y/n): ");
         Scanner sc = new Scanner(System.in);
-        boolean internal = Boolean.parseBoolean(sc.nextLine());
+        String res = sc.nextLine();
+        if (res.equals("y") || res.equals("Y")) {
+            internal = true;
+        }
+
         System.out.println();
 
         System.out.println("--------------------------------------------------------");
@@ -265,12 +378,8 @@ public class Client {
         Socket socket = null;
         try {
             socket = new Socket(natIP, natPort);
-            socket.setSoTimeout(5000);
         } catch (UnknownHostException e) {
             System.out.println("ERROR: Unknown host");
-            System.exit(0);
-        } catch (SocketTimeoutException e) {
-            System.out.println("ERROR: Connection timed out...");
             System.exit(0);
         } catch (IOException e) {
             System.out.println("ERROR: Couldn't get the connection to " + natIP);

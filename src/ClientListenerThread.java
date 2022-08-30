@@ -1,6 +1,13 @@
 import java.io.*;
 import java.net.*;
 
+/**
+ * This thread will listen for incoming packets on the specified port.
+ * It will then parse the packet and determine the type of packet it is.
+ * It will then call the appropriate function to handle the packet.
+ * 
+ * @param port The port to listen on.
+ */
 public class ClientListenerThread implements Runnable {
 
     public static final int ECHO_REPLY = 0;
@@ -10,6 +17,7 @@ public class ClientListenerThread implements Runnable {
     public static final int ARP_REPLY = 3;
     public static final int ARP_REQUEST = 4;
     public static final int ERROR = -1;
+    public static final int ERRORNP = -2;
 
     private Socket socket;
     private ObjectInputStream ois;
@@ -23,9 +31,17 @@ public class ClientListenerThread implements Runnable {
         this.client = client;
     }
 
+    /**
+     * This method will be called when a new paquet is received.
+     * 
+     * @param paquet the paquet received.
+     */
     @Override
     public void run() {
         while (socket.isConnected()) {
+            Timeout timeout = new Timeout();
+            Thread thread = new Thread(timeout);
+            thread.start();
             try {
                 Paquet paquet = (Paquet) ois.readObject();
                 handlePaquet(paquet);
@@ -35,10 +51,17 @@ public class ClientListenerThread implements Runnable {
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
+            thread.interrupt();
         }
 
     }
 
+    /**
+     * Prints the Paquet received.
+     * 
+     * @param p    the Paquet received.
+     * @param type the type of the Paquet received.
+     */
     private void handlePaquet(Paquet p) {
         int type = p.getType();
         switch (type) {
@@ -102,12 +125,24 @@ public class ClientListenerThread implements Runnable {
                 System.out.println("PACKET DROPPED.");
                 System.out.println("--------------------------------------------------------\n");
                 break;
+
+            case ERRORNP:
+                System.out.println("ERROR: " + p.getText());
+                closeEverything();
+                break;
+
             default:
                 System.out.println("ERROR: Invalid Paquet Type ");
                 System.exit(0);
         }
     }
 
+    /**
+     * Prints a Paquet object to the console.
+     * 
+     * @param p      The Paquet object to print.
+     * @param detail A string to print before the Paquet object.
+     */
     private void printPaquet(Paquet p, String detail) {
         System.out.println("-------------------------------------");
         System.out.println(detail);
@@ -124,6 +159,9 @@ public class ClientListenerThread implements Runnable {
         System.out.println();
     }
 
+    /**
+     * Closes all open streams and sockets.
+     */
     private void closeEverything() {
         try {
             if (ois != null) {
@@ -138,6 +176,7 @@ public class ClientListenerThread implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.exit(0);
     }
 
 }

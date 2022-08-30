@@ -1,6 +1,12 @@
 import java.io.*;
 import java.net.*;
 
+/**
+ * This class is responsible for handling the client's requests.
+ * It is responsible for sending the appropriate reply to the client.
+ * It is also responsible for sending the appropriate reply to the client.
+ * 
+ */
 public class ClientHandler implements Runnable {
 
     public static final int ECHO_REPLY = 0;
@@ -10,6 +16,7 @@ public class ClientHandler implements Runnable {
     public static final int ARP_REPLY = 3;
     public static final int ARP_REQUEST = 4;
     public static final int ERROR = -1;
+    public static final int ERRORNP = -2;
 
     private Socket socket;
     private ObjectInputStream ois;
@@ -38,6 +45,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * This method will be called when a new paquet is received.
+     * 
+     * @param paquet the paquet received.
+     */
     @Override
     public void run() {
         while (socket.isConnected()) {
@@ -53,6 +65,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Sends a packet to the client.
+     * 
+     * @param paquet The packet to send.
+     */
     public void tcpSendToThisClient(Paquet paquet) {
         try {
             ous.writeObject(paquet);
@@ -62,22 +79,47 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Returns whether this state is internal or not.
+     * 
+     * @return whether this state is internal or not.
+     */
     public boolean isInternal() {
         return internal;
     }
 
+    /**
+     * Returns the IP address of the client.
+     * 
+     * @return The IP address of the client.
+     */
     public String getClientIP() {
         return clientIP;
     }
 
+    /**
+     * Returns the MAC address of the client.
+     * 
+     * @return The MAC address of the client.
+     */
     public String getClientMAC() {
         return clientMAC;
     }
 
+    /**
+     * Returns the port of the client.
+     * 
+     * @return the port of the client
+     */
     public int getClientPort() {
         return clientPort;
     }
 
+    /**
+     * Handles a received paquet.
+     * 
+     * @param p the paquet to handle.
+     */
     private void handlePaquet(Paquet p) {
         int type = p.getType();
         switch (type) {
@@ -131,6 +173,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Forwards a packet to the correct destination.
+     * 
+     * @param p The packet to forward.
+     */
     private void forwardPaquet(Paquet p) {
         if (internal && natbox.isIPInternal(p.getDestinationIP())) { // internal -> internal
             natbox.tcpSend(p);
@@ -140,8 +187,8 @@ public class ClientHandler implements Runnable {
             p.setSourceMAC(natbox.getMAC());
             p.setSourcePort(natPort);
             natbox.tcpSend(p);
-        } else if (!internal && p.getDestinationIP().equals(natbox.getIP())) { // external -> internal
-
+        } else if (!internal && p.getDestinationIP().equals(natbox.getIP())
+                && natbox.checkNatPort(p.getDestinationPort())) { // external -> internal
             // change destination to natbox
             String ip = natbox.getClientIPFromNATPort(p.getDestinationPort());
             p.setDestinationIP(ip);
@@ -157,11 +204,14 @@ public class ClientHandler implements Runnable {
                 ous.writeObject(p);
                 ous.flush();
             } catch (Exception e) {
-                // TODO: handle exception
+
             }
         }
     }
 
+    /**
+     * @param p
+     */
     private void dhcp(Paquet p) {
         clientMAC = p.getSourceMAC();
         clientIP = p.getSourceIP();
@@ -171,6 +221,16 @@ public class ClientHandler implements Runnable {
             internal = true;
         if (internal) {
             clientIP = natbox.popIPfromPool();
+            if (clientIP == null) {
+                Paquet paquet = new Paquet(null, null, null, null, 0, 0, ERRORNP, "No more IPs available");
+                try {
+                    ous.writeObject(paquet);
+                    ous.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return;
+            }
             natPort = natbox.getAvailablePort();
             addToTable();
         }
@@ -183,6 +243,9 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * @param p
+     */
     private void arp(Paquet p) {
         String sourceMac = p.getSourceMAC();
         String sourceIP = p.getSourceIP();
@@ -212,13 +275,6 @@ public class ClientHandler implements Runnable {
     private void addToTable() {
         TableRow row = new TableRow(clientIP, socket.getPort(), natbox.getIP(), natPort);
         natbox.addRow(row);
-    }
-
-    private void handleCommand(String cmd) {
-        switch (cmd) {
-            case "/exit":
-                break;
-        }
     }
 
     private void closeEverything() {
