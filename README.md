@@ -1,4 +1,4 @@
-# <center> Project 3: A Client-Server Chat Program </center>
+# <center> Project 3: NAT-BOX </center>
 
 Chris Langevelt 23632135
 
