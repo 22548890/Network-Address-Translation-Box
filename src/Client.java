@@ -3,48 +3,6 @@ import java.net.*;
 import java.util.*;
 
 /**
- * This class is used to send and receive UDP packets.
- * It is used to send and receive DHCP requests and replies.
- * It is used to send and receive echo requests and replies.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- */
-/**
- * This class is used to send and receive UDP packets.
- * It is used to send and receive DHCP requests and replies.
- * It is used to send and receive echo requests and replies.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- */
-/**
- * This class is used to send and receive UDP packets.
- * It is used to send and receive DHCP requests and replies.
- * It is used to send and receive echo requests and replies.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- * It is used to send and receive UDP packets.
- */
-/**
  * This class is used to send and receive packets from the server.
  * It is used to send and receive packets from the server.
  */
